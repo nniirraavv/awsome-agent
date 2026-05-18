@@ -9,6 +9,13 @@ interface Props {
 export default function StepDeployRole({ cloudFormationUrl, onNext }: Props) {
   const [roleArn, setRoleArn] = useState('')
   const [error, setError] = useState('')
+  const [copied, setCopied] = useState(false)
+
+  function copyUrl() {
+    navigator.clipboard.writeText(cloudFormationUrl)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -48,17 +55,32 @@ export default function StepDeployRole({ cloudFormationUrl, onNext }: Props) {
         ))}
       </ol>
 
-      <a
-        href={cloudFormationUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex w-full items-center justify-center gap-2 rounded-lg border border-orange-500 bg-orange-500/10 px-4 py-2.5 text-sm font-semibold text-orange-400 transition-colors hover:bg-orange-500/20"
-      >
-        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-        </svg>
-        Launch Stack in AWS Console
-      </a>
+      {cloudFormationUrl ? (
+        <div className="space-y-2">
+          <a
+            href={cloudFormationUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex w-full items-center justify-center gap-2 rounded-lg border border-orange-500 bg-orange-500/10 px-4 py-2.5 text-sm font-semibold text-orange-400 transition-colors hover:bg-orange-500/20"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+            Launch Stack in AWS Console
+          </a>
+          <p className="text-center text-xs text-gray-500">
+            If the button doesn't open,{' '}
+            <button type="button" onClick={copyUrl} className="text-orange-400 underline hover:text-orange-300">
+              {copied ? 'copied!' : 'copy the URL'}
+            </button>
+            {' '}and paste it in your browser.
+          </p>
+        </div>
+      ) : (
+        <div className="rounded-lg border border-red-800 bg-red-950 px-4 py-3 text-sm text-red-400">
+          CloudFormation URL not available. Please contact support.
+        </div>
+      )}
 
       <div className="space-y-1.5">
         <label className="text-sm font-medium text-gray-300">
