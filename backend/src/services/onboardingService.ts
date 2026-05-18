@@ -12,9 +12,6 @@ import { runServiceDiscovery } from './discoveryService.js';
 import type { Tenant } from '../types/index.js';
 
 const REGION = process.env.AWS_REGION ?? 'us-east-1';
-const CHATBOT_ACCOUNT_ID = process.env.AWS_ACCOUNT_ID ?? '';
-const CFN_TEMPLATE_BUCKET = process.env.CFN_TEMPLATE_BUCKET ?? '';
-const CFN_TEMPLATE_S3_URL = process.env.CFN_TEMPLATE_S3_URL ?? '';
 
 export async function registerTenant(data: {
   companyName: string;
@@ -35,8 +32,9 @@ export async function registerTenant(data: {
   const templateKey = `templates/${tenantId}/chatbot-role.yaml`;
   const template = generateCloudFormationTemplate(externalId);
 
-  if (CFN_TEMPLATE_BUCKET) {
-    await uploadTemplate(templateKey, template);
+  const cfnBucket = process.env.CFN_TEMPLATE_BUCKET ?? '';
+  if (cfnBucket) {
+    await uploadTemplate(templateKey, template, cfnBucket);
   }
 
   const cloudFormationUrl = buildLaunchStackUrl(externalId, templateKey);
@@ -52,24 +50,27 @@ export function generateCloudFormationTemplate(externalId: string): string {
 }
 
 function buildLaunchStackUrl(externalId: string, templateKey: string): string {
+  const cfnTemplateS3Url = process.env.CFN_TEMPLATE_S3_URL ?? '';
+  const cfnBucket = process.env.CFN_TEMPLATE_BUCKET ?? '';
+  const chatbotAccountId = process.env.AWS_ACCOUNT_ID ?? '';
   const templateUrl =
-    CFN_TEMPLATE_S3_URL ||
-    (CFN_TEMPLATE_BUCKET ? `https://${CFN_TEMPLATE_BUCKET}.s3.amazonaws.com/${templateKey}` : '') ||
-    'https://raw.githubusercontent.com/nniirraavv/awsome-agent/main/backend/src/templates/chatbot-role.yaml';
+    cfnTemplateS3Url ||
+    (cfnBucket ? `https://${cfnBucket}.s3.amazonaws.com/${templateKey}` : '');
+  if (!templateUrl) return '';
   const params = new URLSearchParams({
     templateURL: templateUrl,
     param_ExternalId: externalId,
-    param_ChatbotAccountId: CHATBOT_ACCOUNT_ID,
+    param_ChatbotAccountId: chatbotAccountId,
     stackName: 'ChatbotReadOnlyAccess',
   });
   return `https://console.aws.amazon.com/cloudformation/home#/stacks/create/review?${params.toString()}`;
 }
 
-async function uploadTemplate(key: string, body: string): Promise<void> {
+async function uploadTemplate(key: string, body: string, bucket: string): Promise<void> {
   const s3 = new S3Client({ region: REGION });
   await s3.send(
     new PutObjectCommand({
-      Bucket: CFN_TEMPLATE_BUCKET,
+      Bucket: bucket,
       Key: key,
       Body: body,
       ContentType: 'text/yaml',
