@@ -52,8 +52,10 @@ export function generateCloudFormationTemplate(externalId: string): string {
 }
 
 function buildLaunchStackUrl(externalId: string, templateKey: string): string {
-  const templateUrl = CFN_TEMPLATE_S3_URL ||
-    `https://${CFN_TEMPLATE_BUCKET}.s3.amazonaws.com/${templateKey}`;
+  const templateUrl =
+    CFN_TEMPLATE_S3_URL ||
+    (CFN_TEMPLATE_BUCKET ? `https://${CFN_TEMPLATE_BUCKET}.s3.amazonaws.com/${templateKey}` : '') ||
+    'https://raw.githubusercontent.com/nniirraavv/awsome-agent/main/backend/src/templates/chatbot-role.yaml';
   const params = new URLSearchParams({
     templateURL: templateUrl,
     param_ExternalId: externalId,
