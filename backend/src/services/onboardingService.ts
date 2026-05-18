@@ -17,6 +17,7 @@ export async function registerTenant(data: {
   companyName: string;
   email: string;
   awsAccountId: string;
+  userId?: string;
 }): Promise<{ tenantId: string; externalId: string; cloudFormationUrl: string }> {
   const tenantId = uuidv4();
   const externalId = `tenant-${tenantId.slice(0, 8)}-${Math.random().toString(36).slice(2, 6)}`;
@@ -27,6 +28,7 @@ export async function registerTenant(data: {
     companyName: data.companyName,
     email: data.email,
     awsAccountId: data.awsAccountId,
+    userId: data.userId,
   });
 
   const templateKey = `templates/${tenantId}/chatbot-role.yaml`;

@@ -7,6 +7,7 @@ export interface Tenant {
   email: string;
   awsAccountId: string;
   externalId: string;
+  userId?: string;
   roleArn?: string;
   status: TenantStatus;
   detectedServices: string[];

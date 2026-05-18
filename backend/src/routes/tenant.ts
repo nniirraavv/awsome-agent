@@ -2,8 +2,22 @@ import { Router } from 'express';
 import { requireAuth } from '../middleware/auth.js';
 import { attachTenantContext, requireActiveTenant } from '../middleware/tenantContext.js';
 import { listSessions } from '../services/chatHistoryService.js';
+import { listTenantsByUser } from '../services/tenantService.js';
 
 const router = Router();
+
+router.get(
+  '/list',
+  requireAuth,
+  async (req, res) => {
+    try {
+      const tenants = await listTenantsByUser(req.userId!);
+      res.json(tenants);
+    } catch (err) {
+      res.status(500).json({ error: String(err) });
+    }
+  }
+);
 
 router.get(
   '/me',

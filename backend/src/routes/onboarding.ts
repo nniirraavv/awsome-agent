@@ -23,7 +23,7 @@ const verifySchema = z.object({
   roleArn: z.string().regex(/^arn:aws:iam::\d{12}:role\/.+$/),
 });
 
-router.post('/register', async (req, res) => {
+router.post('/register', requireAuth, async (req, res) => {
   const parse = registerSchema.safeParse(req.body);
   if (!parse.success) {
     res.status(400).json({ error: parse.error.flatten() });
@@ -31,7 +31,7 @@ router.post('/register', async (req, res) => {
   }
 
   try {
-    const result = await registerTenant(parse.data);
+    const result = await registerTenant({ ...parse.data, userId: req.userId });
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: String(err) });

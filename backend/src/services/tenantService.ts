@@ -5,6 +5,7 @@ import {
   PutCommand,
   UpdateCommand,
   QueryCommand,
+  ScanCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { STSClient, AssumeRoleCommand } from '@aws-sdk/client-sts';
 import type { Tenant, AssumedCredentials } from '../types/index.js';
@@ -28,10 +29,10 @@ export async function getTenant(tenantId: string): Promise<Tenant> {
 }
 
 export async function createTenant(
-  data: Pick<Tenant, 'companyName' | 'email' | 'awsAccountId' | 'externalId' | 'tenantId'>
+  data: Pick<Tenant, 'companyName' | 'email' | 'awsAccountId' | 'externalId' | 'tenantId'> & { userId?: string }
 ): Promise<Tenant> {
   const now = new Date().toISOString();
-  const item = {
+  const item: Record<string, unknown> = {
     tenantId: data.tenantId,
     companyName: data.companyName,
     email: data.email,
@@ -43,8 +44,23 @@ export async function createTenant(
     createdAt: now,
     plan: 'free',
   };
+  if (data.userId) {
+    item['userId'] = data.userId;
+  }
   await dynamo.send(new PutCommand({ TableName: TABLE, Item: item }));
   return getTenant(data.tenantId);
+}
+
+export async function listTenantsByUser(userId: string): Promise<Tenant[]> {
+  const result = await dynamo.send(
+    new ScanCommand({
+      TableName: TABLE,
+      FilterExpression: '#userId = :userId',
+      ExpressionAttributeNames: { '#userId': 'userId' },
+      ExpressionAttributeValues: { ':userId': userId },
+    })
+  );
+  return (result.Items ?? []).map(item => dynamoItemToTenant(item as Record<string, unknown>));
 }
 
 export async function updateTenant(
@@ -122,6 +138,7 @@ function dynamoItemToTenant(item: Record<string, unknown>): Tenant {
     email: item['email'] as string,
     awsAccountId: item['awsAccountId'] as string,
     externalId: item['externalId'] as string,
+    userId: item['userId'] as string | undefined,
     roleArn: item['roleArn'] as string | undefined,
     status: item['status'] as Tenant['status'],
     detectedServices: (item['detectedServices'] as string[]) ?? [],
