@@ -113,13 +113,8 @@ export async function verifyAndActivateTenant(
     );
     credentials = assumed.Credentials!;
   } catch (err: unknown) {
-    const error = err as { name?: string };
-    if (error.name === 'AccessDenied') {
-      throw new Error(
-        'Could not assume role. Ensure the CloudFormation stack deployed successfully and the ExternalId matches.'
-      );
-    }
-    throw err;
+    const error = err as { name?: string; message?: string };
+    throw new Error(`AssumeRole failed [${error.name}]: ${error.message}`);
   }
 
   // 4. Confirm assumed identity is from the correct account
