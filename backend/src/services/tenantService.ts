@@ -21,7 +21,7 @@ const dynamo = DynamoDBDocumentClient.from(
 
 export async function getTenant(tenantId: string): Promise<Tenant> {
   const result = await dynamo.send(
-    new GetCommand({ TableName: TABLE, Key: { tenant_id: tenantId } })
+    new GetCommand({ TableName: TABLE, Key: { tenantId } })
   );
   if (!result.Item) throw new Error(`Tenant not found: ${tenantId}`);
   return dynamoItemToTenant(result.Item);
@@ -32,15 +32,15 @@ export async function createTenant(
 ): Promise<Tenant> {
   const now = new Date().toISOString();
   const item = {
-    tenant_id: data.tenantId,
-    company_name: data.companyName,
+    tenantId: data.tenantId,
+    companyName: data.companyName,
     email: data.email,
-    aws_account_id: data.awsAccountId,
-    external_id: data.externalId,
+    awsAccountId: data.awsAccountId,
+    externalId: data.externalId,
     status: 'pending_role_setup',
-    detected_services: [],
-    active_mcp_servers: [],
-    created_at: now,
+    detectedServices: [],
+    activeMcpServers: [],
+    createdAt: now,
     plan: 'free',
   };
   await dynamo.send(new PutCommand({ TableName: TABLE, Item: item }));
@@ -52,16 +52,16 @@ export async function updateTenant(
   updates: Partial<Omit<Tenant, 'tenantId'>>
 ): Promise<void> {
   const fieldMap: Record<string, string> = {
-    companyName: 'company_name',
+    companyName: 'companyName',
     email: 'email',
-    awsAccountId: 'aws_account_id',
-    externalId: 'external_id',
-    roleArn: 'role_arn',
+    awsAccountId: 'awsAccountId',
+    externalId: 'externalId',
+    roleArn: 'roleArn',
     status: 'status',
-    detectedServices: 'detected_services',
-    activeMcpServers: 'active_mcp_servers',
-    lastDiscoveryAt: 'last_discovery_at',
-    verifiedAt: 'verified_at',
+    detectedServices: 'detectedServices',
+    activeMcpServers: 'activeMcpServers',
+    lastDiscoveryAt: 'lastDiscoveryAt',
+    verifiedAt: 'verifiedAt',
     plan: 'plan',
   };
 
@@ -82,7 +82,7 @@ export async function updateTenant(
   await dynamo.send(
     new UpdateCommand({
       TableName: TABLE,
-      Key: { tenant_id: tenantId },
+      Key: { tenantId },
       UpdateExpression: `SET ${expressions.join(', ')}`,
       ExpressionAttributeNames: names,
       ExpressionAttributeValues: values,
@@ -117,18 +117,18 @@ export function shouldRefreshCredentials(creds: AssumedCredentials): boolean {
 
 function dynamoItemToTenant(item: Record<string, unknown>): Tenant {
   return {
-    tenantId: item['tenant_id'] as string,
-    companyName: item['company_name'] as string,
+    tenantId: item['tenantId'] as string,
+    companyName: item['companyName'] as string,
     email: item['email'] as string,
-    awsAccountId: item['aws_account_id'] as string,
-    externalId: item['external_id'] as string,
-    roleArn: item['role_arn'] as string | undefined,
+    awsAccountId: item['awsAccountId'] as string,
+    externalId: item['externalId'] as string,
+    roleArn: item['roleArn'] as string | undefined,
     status: item['status'] as Tenant['status'],
-    detectedServices: (item['detected_services'] as string[]) ?? [],
-    activeMcpServers: (item['active_mcp_servers'] as string[]) ?? [],
-    lastDiscoveryAt: item['last_discovery_at'] as string | undefined,
-    verifiedAt: item['verified_at'] as string | undefined,
-    createdAt: item['created_at'] as string,
+    detectedServices: (item['detectedServices'] as string[]) ?? [],
+    activeMcpServers: (item['activeMcpServers'] as string[]) ?? [],
+    lastDiscoveryAt: item['lastDiscoveryAt'] as string | undefined,
+    verifiedAt: item['verifiedAt'] as string | undefined,
+    createdAt: item['createdAt'] as string,
     plan: (item['plan'] as Tenant['plan']) ?? 'free',
   };
 }

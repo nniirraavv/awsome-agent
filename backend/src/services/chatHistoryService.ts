@@ -23,26 +23,27 @@ export async function saveMessages(
   messages: Message[],
   mcpToolsUsed: string[]
 ): Promise<void> {
-  const now = new Date().toISOString();
   const ttl = Math.floor(Date.now() / 1000) + TTL_SECONDS;
 
   await Promise.all(
-    messages.map((msg, i) =>
-      dynamo.send(
+    messages.map((msg, i) => {
+      const timestamp = `${new Date().toISOString()}#${i}`;
+      return dynamo.send(
         new PutCommand({
           TableName: TABLE,
           Item: {
-            tenant_id: tenantId,
-            sk: `${sessionId}#${now}#${i}`,
-            user_id: userId,
+            sessionId,
+            timestamp,
+            tenantId,
+            userId,
             role: msg.role,
             content: JSON.stringify(msg.content),
-            mcp_tools_used: mcpToolsUsed,
+            mcpToolsUsed,
             ttl,
           },
         })
-      )
-    )
+      );
+    })
   );
 }
 
@@ -53,12 +54,8 @@ export async function loadHistory(
   const result = await dynamo.send(
     new QueryCommand({
       TableName: TABLE,
-      KeyConditionExpression:
-        'tenant_id = :tid AND begins_with(sk, :prefix)',
-      ExpressionAttributeValues: {
-        ':tid': tenantId,
-        ':prefix': `${sessionId}#`,
-      },
+      KeyConditionExpression: 'sessionId = :sid',
+      ExpressionAttributeValues: { ':sid': sessionId },
       ScanIndexForward: true,
     })
   );
@@ -73,16 +70,16 @@ export async function listSessions(tenantId: string): Promise<string[]> {
   const result = await dynamo.send(
     new QueryCommand({
       TableName: TABLE,
-      KeyConditionExpression: 'tenant_id = :tid',
+      IndexName: 'tenantId-index',
+      KeyConditionExpression: 'tenantId = :tid',
       ExpressionAttributeValues: { ':tid': tenantId },
-      ProjectionExpression: 'sk',
+      ProjectionExpression: 'sessionId',
     })
   );
 
   const sessionIds = new Set<string>();
   for (const item of result.Items ?? []) {
-    const sk = item['sk'] as string;
-    sessionIds.add(sk.split('#')[0]);
+    sessionIds.add(item['sessionId'] as string);
   }
   return [...sessionIds];
 }
