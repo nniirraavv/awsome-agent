@@ -1,17 +1,13 @@
 import type { Request, Response, NextFunction } from 'express';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 
-const REGION = process.env.COGNITO_REGION ?? process.env.AWS_REGION ?? 'us-east-1';
-const USER_POOL_ID = process.env.COGNITO_USER_POOL_ID ?? '';
-const LOCAL_DEV = process.env.LOCAL_DEV_BYPASS_AUTH === 'true';
-const LOCAL_TENANT_ID = process.env.LOCAL_DEV_TENANT_ID ?? 'local-tenant-001';
-
-const jwksUrl = `https://cognito-idp.${REGION}.amazonaws.com/${USER_POOL_ID}/.well-known/jwks.json`;
 let jwks: ReturnType<typeof createRemoteJWKSet> | null = null;
 
 function getJWKS() {
-  if (!jwks && USER_POOL_ID) {
-    jwks = createRemoteJWKSet(new URL(jwksUrl));
+  const region = process.env.COGNITO_REGION ?? process.env.AWS_REGION ?? 'us-east-1';
+  const userPoolId = process.env.COGNITO_USER_POOL_ID ?? '';
+  if (!jwks && userPoolId) {
+    jwks = createRemoteJWKSet(new URL(`https://cognito-idp.${region}.amazonaws.com/${userPoolId}/.well-known/jwks.json`));
   }
   return jwks;
 }
@@ -21,8 +17,8 @@ export async function requireAuth(
   res: Response,
   next: NextFunction
 ): Promise<void> {
-  if (LOCAL_DEV) {
-    req.tenantId = LOCAL_TENANT_ID;
+  if (process.env.LOCAL_DEV_BYPASS_AUTH === 'true') {
+    req.tenantId = process.env.LOCAL_DEV_TENANT_ID ?? 'local-tenant-001';
     req.userId = 'local-user';
     next();
     return;
@@ -37,11 +33,13 @@ export async function requireAuth(
   }
 
   try {
+    const region = process.env.COGNITO_REGION ?? process.env.AWS_REGION ?? 'us-east-1';
+    const userPoolId = process.env.COGNITO_USER_POOL_ID ?? '';
     const keySet = getJWKS();
     if (!keySet) throw new Error('JWKS not configured');
 
     const { payload } = await jwtVerify(token, keySet, {
-      issuer: `https://cognito-idp.${REGION}.amazonaws.com/${USER_POOL_ID}`,
+      issuer: `https://cognito-idp.${region}.amazonaws.com/${userPoolId}`,
     });
 
     req.tenantId = payload['custom:tenant_id'] as string;
