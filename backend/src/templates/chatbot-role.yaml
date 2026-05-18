@@ -1,0 +1,54 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'AWS DevOps Chatbot - Read Only Access Role'
+Parameters:
+  ExternalId:
+    Type: String
+    Description: Unique security token provided by the chatbot (do not change)
+  ChatbotAccountId:
+    Type: String
+    Description: AWS Account ID of the chatbot service (do not change)
+Resources:
+  ChatbotReadOnlyRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub 'ChatbotReadOnly-${ExternalId}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:aws:iam::${ChatbotAccountId}:root'
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals:
+                sts:ExternalId: !Ref ExternalId
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/ReadOnlyAccess
+      Policies:
+        - PolicyName: ChatbotExtraPermissions
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ce:GetCostAndUsage
+                  - ce:GetCostForecast
+                  - ce:GetRecommendations
+                  - ce:ListSavingsPlansPurchaseRecommendationGeneration
+                  - resource-explorer-2:Search
+                  - resource-explorer-2:ListIndexes
+                  - resource-explorer-2:ListViews
+                  - trustedadvisor:DescribeChecks
+                  - trustedadvisor:DescribeCheckResult
+                  - billing:ViewBilling
+                  - securityhub:GetFindings
+                  - securityhub:ListFindings
+                Resource: '*'
+Outputs:
+  RoleArn:
+    Value: !GetAtt ChatbotReadOnlyRole.Arn
+    Description: >
+      Copy this value and paste it back into the chatbot onboarding page
+  ExternalId:
+    Value: !Ref ExternalId
+    Description: The ExternalId used in this role (for reference)

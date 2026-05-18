@@ -1,0 +1,53 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "BedrockAccess",
+      "Effect": "Allow",
+      "Action": [
+        "bedrock:InvokeModel",
+        "bedrock:InvokeModelWithResponseStream",
+        "bedrock:Converse",
+        "bedrock:ConverseStream"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "DynamoDBAccess",
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:GetItem",
+        "dynamodb:PutItem",
+        "dynamodb:UpdateItem",
+        "dynamodb:DeleteItem",
+        "dynamodb:Query",
+        "dynamodb:Scan"
+      ],
+      "Resource": [
+        "arn:aws:dynamodb:us-east-1:283502079202:table/chatbot-tenants",
+        "arn:aws:dynamodb:us-east-1:283502079202:table/chatbot-chat-history",
+        "arn:aws:dynamodb:us-east-1:283502079202:table/chatbot-sessions"
+      ]
+    },
+    {
+      "Sid": "S3TemplateAccess",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject"
+      ],
+      "Resource": "arn:aws:s3:::chatbot-cfn-templates/*"
+    },
+    {
+      "Sid": "CrossAccountTenantRoleAssumption",
+      "Effect": "Allow",
+      "Action": "sts:AssumeRole",
+      "Resource": "arn:aws:iam::*:role/ChatbotReadOnly-*",
+      "Condition": {
+        "StringLike": {
+          "sts:ExternalId": "tenant-*"
+        }
+      }
+    }
+  ]
+}

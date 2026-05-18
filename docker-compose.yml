@@ -1,0 +1,50 @@
+version: '3.8'
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      AWS_REGION: us-east-1
+      AWS_PROFILE: default
+      DYNAMODB_ENDPOINT: http://dynamodb-local:8000
+      BEDROCK_MODEL_ID: anthropic.claude-3-5-sonnet-20241022-v2:0
+      CHATBOT_AWS_ACCOUNT_ID: "${AWS_ACCOUNT_ID}"
+      CFN_TEMPLATE_S3_URL: "${CFN_TEMPLATE_S3_URL}"
+      COGNITO_USER_POOL_ID: "${COGNITO_USER_POOL_ID}"
+      COGNITO_CLIENT_ID: "${COGNITO_CLIENT_ID}"
+      COGNITO_REGION: us-east-1
+      PORT: "3001"
+      NODE_ENV: development
+      LOCAL_DEV_BYPASS_AUTH: "true"
+      LOCAL_DEV_TENANT_ID: local-tenant-001
+      LOCAL_DEV_ROLE_ARN: "${LOCAL_DEV_ROLE_ARN}"
+      DYNAMODB_TABLE_TENANTS: chatbot-tenants
+      DYNAMODB_TABLE_CHAT_HISTORY: chatbot-chat-history
+      DYNAMODB_TABLE_SESSIONS: chatbot-sessions
+    volumes:
+      - ~/.aws:/root/.aws:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - dynamodb-local
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_WS_URL: ws://localhost:3001
+      VITE_API_HTTP_URL: http://localhost:3001
+    depends_on:
+      - backend
+
+  dynamodb-local:
+    image: amazon/dynamodb-local:latest
+    ports:
+      - "8000:8000"
+    command: "-jar DynamoDBLocal.jar -sharedDb -inMemory"

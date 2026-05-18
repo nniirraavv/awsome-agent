@@ -1,0 +1,24 @@
+{
+  "name": "aws-devops-chatbot",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "install:all": "npm install && npm install --prefix frontend && npm install --prefix backend",
+    "dev": "concurrently -n backend,frontend -c cyan,magenta \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
+    "dev:backend": "npm run dev --prefix backend",
+    "dev:frontend": "npm run dev --prefix frontend",
+    "setup:tables": "tsx scripts/setup-tables.ts",
+    "setup:seed": "tsx scripts/setup-seed.ts",
+    "dynamo:start": "dynamo-db-local",
+    "build": "npm run build --prefix backend && npm run build --prefix frontend",
+    "typecheck": "npm run typecheck --prefix backend && npm run typecheck --prefix frontend"
+  },
+  "devDependencies": {
+    "@aws-sdk/client-dynamodb": "^3.600.0",
+    "@aws-sdk/lib-dynamodb": "^3.600.0",
+    "concurrently": "^8.2.2",
+    "dotenv": "^16.4.5",
+    "dynamodb-local": "^0.0.38",
+    "tsx": "^4.16.2"
+  }
+}
