@@ -56,10 +56,18 @@ export function confirmSignUp(email: string, code: string): Promise<void> {
     const user = new CognitoUser({ Username: email, Pool: pool });
 
     user.confirmRegistration(code, true, (err) => {
-      if (err) {
-        reject(err);
-        return;
-      }
+      if (err) { reject(err); return; }
+      resolve();
+    });
+  });
+}
+
+export function resendConfirmationCode(email: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const pool = getPool();
+    const user = new CognitoUser({ Username: email, Pool: pool });
+    user.resendConfirmationCode((err) => {
+      if (err) { reject(err); return; }
       resolve();
     });
   });
