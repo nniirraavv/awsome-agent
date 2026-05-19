@@ -7,6 +7,7 @@ import {
   createTenant,
   getTenant,
   updateTenant,
+  accountExistsForUser,
 } from './tenantService.js';
 import { runServiceDiscovery } from './discoveryService.js';
 import type { Tenant } from '../types/index.js';
@@ -19,6 +20,13 @@ export async function registerTenant(data: {
   awsAccountId: string;
   userId?: string;
 }): Promise<{ tenantId: string; externalId: string; cloudFormationUrl: string }> {
+  if (data.userId) {
+    const exists = await accountExistsForUser(data.userId, data.awsAccountId);
+    if (exists) {
+      throw new Error('This AWS account is already connected to your profile. Delete it first if you want to reconnect.');
+    }
+  }
+
   const tenantId = uuidv4();
   const externalId = uuidv4(); // full UUID — high entropy, never exposed in role name
 

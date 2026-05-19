@@ -4,6 +4,7 @@ import {
   GetCommand,
   PutCommand,
   UpdateCommand,
+  DeleteCommand,
   QueryCommand,
   ScanCommand,
 } from '@aws-sdk/lib-dynamodb';
@@ -49,6 +50,23 @@ export async function createTenant(
   }
   await dynamo.send(new PutCommand({ TableName: TABLE, Item: item }));
   return getTenant(data.tenantId);
+}
+
+export async function deleteTenant(tenantId: string): Promise<void> {
+  await dynamo.send(new DeleteCommand({ TableName: TABLE, Key: { tenantId } }));
+}
+
+export async function accountExistsForUser(userId: string, awsAccountId: string): Promise<boolean> {
+  const result = await dynamo.send(
+    new ScanCommand({
+      TableName: TABLE,
+      FilterExpression: '#userId = :userId AND awsAccountId = :awsAccountId',
+      ExpressionAttributeNames: { '#userId': 'userId' },
+      ExpressionAttributeValues: { ':userId': userId, ':awsAccountId': awsAccountId },
+      Limit: 1,
+    })
+  );
+  return (result.Count ?? 0) > 0;
 }
 
 export async function listTenantsByUser(userId: string): Promise<Tenant[]> {

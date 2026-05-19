@@ -82,6 +82,19 @@ export default function App() {
     setView({ kind: 'onboarding', canCancel: true })
   }
 
+  async function handleDeleteTenant(tenant: Tenant) {
+    const token = getAccessToken()
+    await fetch(`${API}/tenant/${tenant.tenantId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    // Refresh tenant list
+    const tenants = await loadTenants()
+    if (tenants !== null) {
+      setView({ kind: 'dashboard', tenants })
+    }
+  }
+
   async function handleResumeSetup(tenant: Tenant) {
     const token = getAccessToken()
     try {
@@ -146,6 +159,7 @@ export default function App() {
         onOpenChat={handleOpenChat}
         onAddAccount={handleAddAccount}
         onResumeSetup={handleResumeSetup}
+        onDeleteTenant={handleDeleteTenant}
         onSignOut={handleSignOut}
       />
     )
