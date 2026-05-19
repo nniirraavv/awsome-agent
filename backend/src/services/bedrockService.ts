@@ -10,7 +10,7 @@ import { callMCPTool } from './mcpManager.js';
 import type { Tenant, ServerEvent } from '../types/index.js';
 
 const MODEL_ID =
-  process.env.BEDROCK_MODEL_ID ?? 'anthropic.claude-3-5-sonnet-20241022-v2:0';
+  process.env.BEDROCK_MODEL_ID ?? 'us.anthropic.claude-haiku-4-5-20251001-v1:0';
 const REGION = process.env.AWS_REGION ?? 'us-east-1';
 const MAX_HISTORY_TURNS = 20;
 
