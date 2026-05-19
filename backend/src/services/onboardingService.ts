@@ -109,14 +109,18 @@ export async function verifyAndActivateTenant(
   // 1. Validate Role ARN format
   const arnRegex = /^arn:aws:iam::\d{12}:role\/.+$/;
   if (!arnRegex.test(roleArn)) {
-    throw new Error('Invalid Role ARN format');
+    throw new Error(
+      'The Role ARN you entered looks incorrect. It should look like: ' +
+      'arn:aws:iam::123456789012:role/RoleName — copy it directly from the Outputs tab in CloudFormation.'
+    );
   }
 
   // 2. Verify ARN account matches registered account
   const arnAccountId = roleArn.split(':')[4];
   if (arnAccountId !== tenant.awsAccountId) {
     throw new Error(
-      `Role ARN account (${arnAccountId}) does not match registered account (${tenant.awsAccountId})`
+      `The Role ARN belongs to AWS account ${arnAccountId}, but you registered account ${tenant.awsAccountId}. ` +
+      `Make sure you are logged into the correct AWS account when deploying the CloudFormation stack.`
     );
   }
 
@@ -136,7 +140,20 @@ export async function verifyAndActivateTenant(
     credentials = assumed.Credentials!;
   } catch (err: unknown) {
     const error = err as { name?: string; message?: string };
-    throw new Error(`AssumeRole failed [${error.name}]: ${error.message}`);
+    if (error.name === 'AccessDenied' || error.message?.includes('AccessDenied') || error.message?.includes('not authorized')) {
+      throw new Error(
+        'Access denied. This usually means the CloudFormation stack was deployed with a different session — ' +
+        'please go back, delete the old stack in your AWS account, click "Launch Stack" again, ' +
+        'deploy a fresh stack, and paste the new Role ARN from the Outputs tab.'
+      );
+    }
+    if (error.name === 'NoSuchEntity' || error.message?.includes('does not exist')) {
+      throw new Error(
+        'Role not found. Make sure the CloudFormation stack finished deploying (status: CREATE_COMPLETE) ' +
+        'and that you copied the Role ARN from the Outputs tab.'
+      );
+    }
+    throw new Error(`Could not connect to your AWS account: ${error.message}`);
   }
 
   // 4. Confirm assumed identity is from the correct account
@@ -150,7 +167,10 @@ export async function verifyAndActivateTenant(
   });
   const identity = await verifyClient.send(new GetCallerIdentityCommand({}));
   if (identity.Account !== tenant.awsAccountId) {
-    throw new Error('Role resolves to wrong AWS account');
+    throw new Error(
+      `The role resolved to AWS account ${identity.Account}, but your registered account is ${tenant.awsAccountId}. ` +
+      `Please make sure you deployed the CloudFormation stack in the correct AWS account.`
+    );
   }
 
   // 5. Save verified role ARN, update status
