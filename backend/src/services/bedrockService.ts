@@ -74,6 +74,8 @@ function send(ws: WebSocket, event: ServerEvent): void {
   }
 }
 
+const MAX_TOOLS = 64;
+
 export async function streamChat(
   ws: WebSocket,
   tenant: Tenant,
@@ -86,12 +88,16 @@ export async function streamChat(
     { role: 'user', content: [{ text: userMessage }] },
   ];
 
-  const tools = bedrockToolsFromMCP(mcpSession.tools);
+  const allTools = bedrockToolsFromMCP(mcpSession.tools);
+  // Bedrock rejects or hangs on requests with too many tools — cap at MAX_TOOLS
+  const tools = allTools.slice(0, MAX_TOOLS);
+  console.log(`[bedrock] model=${MODEL_ID} tools=${allTools.length} (capped to ${tools.length})`);
   const systemPrompt = buildSystemPrompt(tenant);
 
   let continueLoop = true;
 
   while (continueLoop) {
+    console.log('[bedrock] sending ConverseStreamCommand...');
     const stream = await bedrock.send(
       new ConverseStreamCommand({
         modelId: MODEL_ID,
@@ -108,6 +114,7 @@ export async function streamChat(
     let currentToolUse: { toolUseId: string; name: string; inputJson: string } | null = null;
     let stopReason = 'end_turn';
 
+    console.log('[bedrock] stream opened, consuming events...');
     for await (const event of stream.stream ?? []) {
       if (event.contentBlockStart?.start?.toolUse) {
         const tu = event.contentBlockStart.start.toolUse;
