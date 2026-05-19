@@ -4,7 +4,7 @@ import OnboardingWizard from './components/onboarding/OnboardingWizard.tsx'
 import ChatWindow from './components/ChatWindow.tsx'
 import AuthPage from './pages/AuthPage.tsx'
 import Dashboard from './pages/Dashboard.tsx'
-import { getAccessToken } from './lib/cognito.ts'
+import { getAccessToken, signOut } from './lib/cognito.ts'
 
 const API = import.meta.env.VITE_API_HTTP_URL ?? ''
 
@@ -139,8 +139,7 @@ export default function App() {
   if (view.kind === 'chat') {
     return (
       <div className="relative">
-        {/* Back to dashboard button */}
-        <div className="absolute left-4 top-4 z-50">
+        <div className="absolute left-4 top-4 z-50 flex gap-2">
           <button
             onClick={handleBackToDashboard}
             className="flex items-center gap-1.5 rounded-lg border border-gray-700 bg-gray-900 px-3 py-1.5 text-xs text-gray-400 shadow transition hover:border-gray-600 hover:text-white"
@@ -149,6 +148,15 @@ export default function App() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
             </svg>
             Dashboard
+          </button>
+          <button
+            onClick={() => { signOut(); setView({ kind: 'auth' }) }}
+            className="flex items-center gap-1.5 rounded-lg border border-gray-700 bg-gray-900 px-3 py-1.5 text-xs text-gray-400 shadow transition hover:border-gray-600 hover:text-white"
+          >
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l-3 3m0 0 3 3m-3-3h12.75" />
+            </svg>
+            Sign out
           </button>
         </div>
         <ChatWindow tenant={view.tenant} onTenantUpdate={handleTenantUpdate} />
