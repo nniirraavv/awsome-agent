@@ -117,6 +117,8 @@ export async function streamChat(
     const toolUseBlocks: Array<{ toolUseId: string; name: string; input: string }> = [];
     let currentToolUse: { toolUseId: string; name: string; inputJson: string } | null = null;
     let stopReason = 'end_turn';
+    let inThinking = false;
+    let thinkBuf = '';
 
     console.log('[bedrock] stream opened, consuming events...');
     for await (const event of stream.stream ?? []) {
@@ -126,8 +128,24 @@ export async function streamChat(
         const serverPkg = mcpSession.toolServerMap.get(tu.name ?? '') ?? '';
         send(ws, { type: 'tool_start', toolName: tu.name ?? '', mcpServer: serverPkg });
       } else if (event.contentBlockDelta?.delta?.text) {
-        assistantText += event.contentBlockDelta.delta.text;
-        send(ws, { type: 'text_delta', delta: event.contentBlockDelta.delta.text });
+        thinkBuf += event.contentBlockDelta.delta.text;
+        // Strip <thinking>...</thinking> blocks (Nova Pro extended thinking)
+        let toSend = '';
+        while (true) {
+          if (!inThinking) {
+            const s = thinkBuf.indexOf('<thinking>');
+            if (s === -1) { toSend += thinkBuf; thinkBuf = ''; break; }
+            toSend += thinkBuf.slice(0, s);
+            thinkBuf = thinkBuf.slice(s + '<thinking>'.length);
+            inThinking = true;
+          } else {
+            const e = thinkBuf.indexOf('</thinking>');
+            if (e === -1) { thinkBuf = ''; break; }
+            thinkBuf = thinkBuf.slice(e + '</thinking>'.length);
+            inThinking = false;
+          }
+        }
+        if (toSend) { assistantText += toSend; send(ws, { type: 'text_delta', delta: toSend }); }
       } else if (event.contentBlockDelta?.delta?.toolUse?.input && currentToolUse) {
         currentToolUse.inputJson += event.contentBlockDelta.delta.toolUse.input;
       } else if (event.contentBlockStop && currentToolUse) {
