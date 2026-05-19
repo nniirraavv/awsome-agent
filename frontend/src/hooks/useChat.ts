@@ -4,7 +4,7 @@ import type { ChatMessage, ServerEvent } from '../types/index.ts'
 
 const WS_URL = import.meta.env.VITE_API_WS_URL ?? 'ws://localhost:3001'
 
-export function useChat(sessionId: string) {
+export function useChat(sessionId: string, tenantId: string) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [activeTools, setActiveTools] = useState<string[]>([])
   const [connected, setConnected] = useState(false)
@@ -14,7 +14,7 @@ export function useChat(sessionId: string) {
 
   useEffect(() => {
     const token = localStorage.getItem('token') ?? ''
-    const ws = new WebSocket(`${WS_URL}/chat/stream?token=${token}`)
+    const ws = new WebSocket(`${WS_URL}/chat/stream?token=${token}&tenantId=${tenantId}`)
     wsRef.current = ws
 
     ws.onopen = () => setConnected(true)
@@ -51,7 +51,7 @@ export function useChat(sessionId: string) {
     }
 
     return () => { ws.close() }
-  }, [sessionId])
+  }, [sessionId, tenantId])
 
   const sendMessage = useCallback((content: string) => {
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return

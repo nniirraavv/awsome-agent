@@ -19,7 +19,7 @@ export default function ChatWindow({ tenant, onTenantUpdate }: Props) {
   const [sessions, setSessions] = useState<string[]>([])
   const bottomRef = useRef<HTMLDivElement>(null)
 
-  const { messages, activeTools, connected, streaming, sendMessage } = useChat(sessionId)
+  const { messages, activeTools, connected, streaming, sendMessage } = useChat(sessionId, tenant.tenantId)
 
   // Load session history on mount
   useEffect(() => {

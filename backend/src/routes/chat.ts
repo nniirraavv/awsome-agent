@@ -13,24 +13,25 @@ import { streamChat } from '../services/bedrockService.js';
 import { saveMessages, loadHistory } from '../services/chatHistoryService.js';
 import type { ClientMessage } from '../types/index.js';
 
-const REGION = process.env.COGNITO_REGION ?? process.env.AWS_REGION ?? 'us-east-1';
-const USER_POOL_ID = process.env.COGNITO_USER_POOL_ID ?? '';
+// Read LOCAL_DEV at module level is fine — it never changes at runtime
 const LOCAL_DEV = process.env.LOCAL_DEV_BYPASS_AUTH === 'true';
 const LOCAL_TENANT_ID = process.env.LOCAL_DEV_TENANT_ID ?? 'local-tenant-001';
-const LOCAL_ROLE_ARN = process.env.LOCAL_DEV_ROLE_ARN ?? '';
 
 let jwks: ReturnType<typeof createRemoteJWKSet> | null = null;
 function getJWKS() {
-  if (!jwks && USER_POOL_ID) {
+  // Read env vars lazily so dotenv has already run by the time this is called
+  const region = process.env.COGNITO_REGION ?? process.env.AWS_REGION ?? 'us-east-1';
+  const userPoolId = process.env.COGNITO_USER_POOL_ID ?? '';
+  if (!jwks && userPoolId) {
     jwks = createRemoteJWKSet(
-      new URL(`https://cognito-idp.${REGION}.amazonaws.com/${USER_POOL_ID}/.well-known/jwks.json`)
+      new URL(`https://cognito-idp.${region}.amazonaws.com/${userPoolId}/.well-known/jwks.json`)
     );
   }
   return jwks;
 }
 
-async function authenticate(req: IncomingMessage): Promise<{ tenantId: string; userId: string } | null> {
-  if (LOCAL_DEV) return { tenantId: LOCAL_TENANT_ID, userId: 'local-user' };
+async function authenticate(req: IncomingMessage): Promise<{ userId: string } | null> {
+  if (LOCAL_DEV) return { userId: 'local-user' };
 
   const url = new URL(req.url ?? '/', `http://${req.headers.host}`);
   const token = url.searchParams.get('token') ??
@@ -41,13 +42,12 @@ async function authenticate(req: IncomingMessage): Promise<{ tenantId: string; u
   try {
     const keySet = getJWKS();
     if (!keySet) return null;
+    const region = process.env.COGNITO_REGION ?? process.env.AWS_REGION ?? 'us-east-1';
+    const userPoolId = process.env.COGNITO_USER_POOL_ID ?? '';
     const { payload } = await jwtVerify(token, keySet, {
-      issuer: `https://cognito-idp.${REGION}.amazonaws.com/${USER_POOL_ID}`,
+      issuer: `https://cognito-idp.${region}.amazonaws.com/${userPoolId}`,
     });
-    return {
-      tenantId: payload['custom:tenant_id'] as string,
-      userId: payload['sub'] as string,
-    };
+    return { userId: payload['sub'] as string };
   } catch {
     return null;
   }
@@ -68,7 +68,15 @@ export async function handleChatWebSocket(
     return;
   }
 
-  const { tenantId, userId } = auth;
+  const { userId } = auth;
+
+  const url = new URL(req.url ?? '/', `http://${req.headers.host}`);
+  const tenantId = LOCAL_DEV ? LOCAL_TENANT_ID : url.searchParams.get('tenantId');
+  if (!tenantId) {
+    sendEvent(ws, { type: 'error', message: 'Missing tenantId' });
+    ws.close(1008, 'Missing tenantId');
+    return;
+  }
 
   let tenant;
   try {
@@ -76,6 +84,13 @@ export async function handleChatWebSocket(
   } catch {
     sendEvent(ws, { type: 'error', message: 'Tenant not found' });
     ws.close(1008, 'Tenant not found');
+    return;
+  }
+
+  // Verify the authenticated user owns this tenant
+  if (!LOCAL_DEV && tenant.userId !== userId) {
+    sendEvent(ws, { type: 'error', message: 'Unauthorized' });
+    ws.close(1008, 'Unauthorized');
     return;
   }
 
