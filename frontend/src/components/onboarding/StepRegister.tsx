@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { RegisterResponse } from '../../types/index.ts'
-import { getAccessToken } from '../../lib/cognito.ts'
+import { getAccessToken, getUserEmail } from '../../lib/cognito.ts'
 
 const API = import.meta.env.VITE_API_HTTP_URL ?? ''
 
@@ -9,7 +9,7 @@ interface Props {
 }
 
 export default function StepRegister({ onNext }: Props) {
-  const [form, setForm] = useState({ companyName: '', email: '', awsAccountId: '' })
+  const [form, setForm] = useState({ companyName: '', awsAccountId: '' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -19,13 +19,14 @@ export default function StepRegister({ onNext }: Props) {
     setLoading(true)
     try {
       const token = getAccessToken()
+      const email = getUserEmail()
       const res = await fetch(`${API}/onboarding/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, email }),
       })
       const data = await res.json() as RegisterResponse & { error?: string }
       if (!res.ok) throw new Error(data.error ?? 'Registration failed')
@@ -41,7 +42,7 @@ export default function StepRegister({ onNext }: Props) {
   return (
     <form onSubmit={submit} className="space-y-5">
       <div>
-        <h2 className="text-lg font-semibold text-white">Create your account</h2>
+        <h2 className="text-lg font-semibold text-white">Connect your AWS account</h2>
         <p className="mt-1 text-sm text-gray-400">We'll set up read-only access to your AWS account.</p>
       </div>
 
@@ -51,17 +52,6 @@ export default function StepRegister({ onNext }: Props) {
           placeholder="Acme Corp"
           value={form.companyName}
           onChange={e => setForm(f => ({ ...f, companyName: e.target.value }))}
-          required
-        />
-      </Field>
-
-      <Field label="Email" required>
-        <input
-          type="email"
-          className={inputCls}
-          placeholder="you@company.com"
-          value={form.email}
-          onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
           required
         />
       </Field>
@@ -81,7 +71,7 @@ export default function StepRegister({ onNext }: Props) {
       {error && <p className="rounded-lg bg-red-950 px-4 py-3 text-sm text-red-400">{error}</p>}
 
       <button type="submit" disabled={loading} className={btnCls}>
-        {loading ? 'Creating account…' : 'Continue'}
+        {loading ? 'Creating…' : 'Continue'}
       </button>
     </form>
   )

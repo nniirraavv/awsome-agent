@@ -24,6 +24,11 @@ export function signIn(email: string, password: string): Promise<string> {
       onSuccess(session) {
         const accessToken = session.getAccessToken().getJwtToken();
         localStorage.setItem('token', accessToken);
+        // Store email from ID token so other pages don't need to ask again
+        try {
+          const idPayload = JSON.parse(atob(session.getIdToken().getJwtToken().split('.')[1]!));
+          if (idPayload.email) localStorage.setItem('userEmail', idPayload.email);
+        } catch { /* ignore */ }
         resolve(accessToken);
       },
       onFailure(err) {
@@ -73,6 +78,10 @@ export function resendConfirmationCode(email: string): Promise<void> {
   });
 }
 
+export function getUserEmail(): string {
+  return localStorage.getItem('userEmail') ?? ''
+}
+
 export function signOut(): void {
   const pool = getPool();
   const user = pool.getCurrentUser();
@@ -81,6 +90,7 @@ export function signOut(): void {
   }
   localStorage.removeItem('token');
   localStorage.removeItem('tenantId');
+  localStorage.removeItem('userEmail');
 }
 
 export function getAccessToken(): string | null {
