@@ -45,11 +45,16 @@ export function useChat(sessionId: string, tenantId: string) {
       } else if (event.type === 'error') {
         setStreaming(false)
         setActiveTools([])
+        const pendingId = pendingAssistantId.current
         pendingAssistantId.current = null
-        setMessages(msgs => [
-          ...msgs,
-          { id: uuidv4(), role: 'assistant', content: `Error: ${event.message}`, timestamp: new Date().toISOString() },
-        ])
+        setMessages(msgs => {
+          const errorText = `Error: ${event.message}`
+          if (pendingId) {
+            // Replace the spinner bubble with the error text
+            return msgs.map(m => m.id === pendingId ? { ...m, content: errorText } : m)
+          }
+          return [...msgs, { id: uuidv4(), role: 'assistant', content: errorText, timestamp: new Date().toISOString() }]
+        })
       }
     }
 

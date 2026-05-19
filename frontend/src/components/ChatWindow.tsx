@@ -86,7 +86,7 @@ export default function ChatWindow({ tenant, onTenantUpdate }: Props) {
                   <button
                     key={s}
                     onClick={() => sendMessage(s)}
-                    disabled={!connected}
+                    disabled={!ready}
                     className="rounded-xl border border-gray-800 bg-gray-900 px-4 py-3 text-left text-sm text-gray-300 transition-colors hover:border-orange-500/30 hover:bg-gray-800"
                   >
                     {s}
