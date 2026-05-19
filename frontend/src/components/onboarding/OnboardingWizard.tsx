@@ -3,20 +3,38 @@ import type { Tenant, OnboardingState } from '../../types/index.ts'
 import StepRegister from './StepRegister.tsx'
 import StepDeployRole from './StepDeployRole.tsx'
 import StepVerify from './StepVerify.tsx'
+import { signOut } from '../../lib/cognito.ts'
 
 interface Props {
   initialTenantId?: string
   onComplete: (tenant: Tenant) => void
+  onCancel?: () => void
 }
 
-export default function OnboardingWizard({ initialTenantId, onComplete }: Props) {
+export default function OnboardingWizard({ initialTenantId, onComplete, onCancel }: Props) {
   const [state, setState] = useState<OnboardingState>({
     step: initialTenantId ? 2 : 1,
     tenantId: initialTenantId,
   })
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gray-950 px-4">
+    <div className="relative flex min-h-screen flex-col items-center justify-center bg-gray-950 px-4">
+      <div className="absolute right-4 top-4 flex gap-2">
+        {onCancel && (
+          <button
+            onClick={onCancel}
+            className="rounded-lg border border-gray-700 px-3 py-1.5 text-sm text-gray-400 transition hover:border-gray-600 hover:text-white"
+          >
+            Cancel
+          </button>
+        )}
+        <button
+          onClick={() => { signOut(); window.location.reload() }}
+          className="rounded-lg border border-gray-700 px-3 py-1.5 text-sm text-gray-400 transition hover:border-gray-600 hover:text-white"
+        >
+          Sign out
+        </button>
+      </div>
       <div className="w-full max-w-lg">
         {/* Logo / header */}
         <div className="mb-8 text-center">

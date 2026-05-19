@@ -11,7 +11,7 @@ const API = import.meta.env.VITE_API_HTTP_URL ?? ''
 type View =
   | { kind: 'loading' }
   | { kind: 'auth' }
-  | { kind: 'onboarding' }
+  | { kind: 'onboarding'; canCancel: boolean }
   | { kind: 'dashboard'; tenants: Tenant[] }
   | { kind: 'chat'; tenant: Tenant; tenants: Tenant[] }
 
@@ -41,9 +41,8 @@ export default function App() {
         // Token invalid/expired — clear it and go to login
         localStorage.removeItem('token')
         setView({ kind: 'auth' })
-      } else if (tenants.length === 0) {
-        setView({ kind: 'onboarding' })
       } else {
+        // Always land on dashboard; user can add accounts from there
         setView({ kind: 'dashboard', tenants })
       }
     } catch {
@@ -80,7 +79,7 @@ export default function App() {
   }
 
   function handleAddAccount() {
-    setView({ kind: 'onboarding' })
+    setView({ kind: 'onboarding', canCancel: true })
   }
 
   function handleTenantUpdate(t: Tenant) {
@@ -121,6 +120,7 @@ export default function App() {
       <OnboardingWizard
         initialTenantId={undefined}
         onComplete={handleOnboardingComplete}
+        onCancel={view.canCancel ? handleBackToDashboard : undefined}
       />
     )
   }
