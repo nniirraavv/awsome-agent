@@ -91,7 +91,7 @@ export async function streamChat(
     { role: 'user', content: [{ text: userMessage }] },
   ];
 
-  const MODEL_ID = process.env.BEDROCK_MODEL_ID ?? 'us.amazon.nova-pro-v1:0';
+  const MODEL_ID = process.env.BEDROCK_MODEL_ID ?? 'us.anthropic.claude-haiku-4-5-20251001-v1:0';
   const allTools = bedrockToolsFromMCP(mcpSession.tools);
   // Bedrock rejects or hangs on requests with too many tools — cap at MAX_TOOLS
   const tools = allTools.slice(0, MAX_TOOLS);
