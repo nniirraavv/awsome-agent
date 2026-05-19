@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { RegisterResponse } from '../../types/index.ts'
+import { getAccessToken } from '../../lib/cognito.ts'
 
 const API = import.meta.env.VITE_API_HTTP_URL ?? ''
 
@@ -17,9 +18,13 @@ export default function StepRegister({ onNext }: Props) {
     setError('')
     setLoading(true)
     try {
+      const token = getAccessToken()
       const res = await fetch(`${API}/onboarding/register`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify(form),
       })
       const data = await res.json() as RegisterResponse & { error?: string }
