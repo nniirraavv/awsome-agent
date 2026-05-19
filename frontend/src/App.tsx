@@ -18,12 +18,13 @@ type View =
 export default function App() {
   const [view, setView] = useState<View>({ kind: 'loading' })
 
-  async function loadTenants(): Promise<Tenant[]> {
+  async function loadTenants(): Promise<Tenant[] | null> {
     const token = getAccessToken()
-    if (!token) return []
+    if (!token) return null
     const res = await fetch(`${API}/tenant/list`, {
       headers: { Authorization: `Bearer ${token}` },
     })
+    if (res.status === 401 || res.status === 403) return null
     if (!res.ok) return []
     return res.json()
   }
@@ -36,7 +37,11 @@ export default function App() {
     }
     try {
       const tenants = await loadTenants()
-      if (tenants.length === 0) {
+      if (tenants === null) {
+        // Token invalid/expired — clear it and go to login
+        localStorage.removeItem('token')
+        setView({ kind: 'auth' })
+      } else if (tenants.length === 0) {
         setView({ kind: 'onboarding' })
       } else {
         setView({ kind: 'dashboard', tenants })
@@ -61,9 +66,8 @@ export default function App() {
 
   function handleOnboardingComplete(t: Tenant) {
     localStorage.setItem('tenantId', t.tenantId)
-    // After onboarding, reload tenants and go to dashboard
     loadTenants().then(tenants => {
-      setView({ kind: 'dashboard', tenants })
+      setView({ kind: 'dashboard', tenants: tenants ?? [t] })
     }).catch(() => {
       setView({ kind: 'dashboard', tenants: [t] })
     })
@@ -87,7 +91,12 @@ export default function App() {
 
   function handleBackToDashboard() {
     loadTenants().then(tenants => {
-      setView({ kind: 'dashboard', tenants })
+      if (tenants === null) {
+        localStorage.removeItem('token')
+        setView({ kind: 'auth' })
+      } else {
+        setView({ kind: 'dashboard', tenants })
+      }
     }).catch(() => {
       if (view.kind === 'chat') {
         setView({ kind: 'dashboard', tenants: view.tenants })
