@@ -11,6 +11,7 @@ export type ServerEvent =
   | { type: 'tool_start'; toolName: string; mcpServer: string }
   | { type: 'tool_end'; toolName: string }
   | { type: 'message_end' }
+  | { type: 'ready' }
   | { type: 'error'; message: string };
 
 export type TenantStatus = 'pending_role_setup' | 'active' | 'suspended';

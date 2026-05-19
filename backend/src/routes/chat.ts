@@ -102,31 +102,16 @@ export async function handleChatWebSocket(
 
   let creds = await assumeTenantRole(tenant);
   let mcpSession: MCPSession | null = null;
+  let sessionReady = false;
 
-  try {
-    mcpSession = await createMCPSession(tenantId, tenant.activeMcpServers, creds);
-  } catch (err) {
-    sendEvent(ws, { type: 'error', message: `Failed to initialize MCP session: ${err}` });
-    ws.close(1011, 'MCP init failed');
-    return;
-  }
-
-  // Credential refresh interval
-  const refreshInterval = setInterval(async () => {
-    if (shouldRefreshCredentials(creds) && mcpSession) {
-      try {
-        creds = await assumeTenantRole(tenant);
-        await refreshSessionCredentials(mcpSession, creds);
-      } catch (err) {
-        console.error('[chat] Credential refresh failed:', err);
-      }
-    }
-  }, 5 * 60 * 1000);
-
-  console.log(`[chat] session ready for tenant=${tenantId}`);
-
+  // Register message handler IMMEDIATELY so messages sent during MCP init aren't silently dropped
   ws.on('message', async (raw) => {
-    console.log('[chat] message received');
+    console.log(`[chat] message received, sessionReady=${sessionReady}`);
+    if (!sessionReady) {
+      sendEvent(ws, { type: 'error', message: 'Session is still initializing, please wait a few seconds and try again.' });
+      return;
+    }
+
     let msg: ClientMessage;
     try {
       msg = JSON.parse(raw.toString()) as ClientMessage;
@@ -147,6 +132,31 @@ export async function handleChatWebSocket(
       sendEvent(ws, { type: 'error', message: String(err) });
     }
   });
+
+  // Initialize MCP session after registering the message handler
+  try {
+    mcpSession = await createMCPSession(tenantId, tenant.activeMcpServers, creds);
+  } catch (err) {
+    sendEvent(ws, { type: 'error', message: `Failed to initialize MCP session: ${err}` });
+    ws.close(1011, 'MCP init failed');
+    return;
+  }
+
+  sessionReady = true;
+  sendEvent(ws, { type: 'ready' });
+  console.log(`[chat] session ready for tenant=${tenantId}`);
+
+  // Credential refresh interval
+  const refreshInterval = setInterval(async () => {
+    if (shouldRefreshCredentials(creds) && mcpSession) {
+      try {
+        creds = await assumeTenantRole(tenant);
+        await refreshSessionCredentials(mcpSession, creds);
+      } catch (err) {
+        console.error('[chat] Credential refresh failed:', err);
+      }
+    }
+  }, 5 * 60 * 1000);
 
   ws.on('close', async () => {
     clearInterval(refreshInterval);

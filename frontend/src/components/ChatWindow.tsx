@@ -19,7 +19,7 @@ export default function ChatWindow({ tenant, onTenantUpdate }: Props) {
   const [sessions, setSessions] = useState<string[]>([])
   const bottomRef = useRef<HTMLDivElement>(null)
 
-  const { messages, activeTools, connected, streaming, sendMessage } = useChat(sessionId, tenant.tenantId)
+  const { messages, activeTools, connected, ready, streaming, sendMessage } = useChat(sessionId, tenant.tenantId)
 
   // Load session history on mount
   useEffect(() => {
@@ -62,8 +62,8 @@ export default function ChatWindow({ tenant, onTenantUpdate }: Props) {
         <header className="flex items-center justify-between border-b border-gray-800 px-6 py-3">
           <h1 className="text-sm font-semibold text-white">AWS DevOps Assistant</h1>
           <div className="flex items-center gap-2">
-            <span className={`h-2 w-2 rounded-full ${connected ? 'bg-green-400' : 'bg-red-400'}`} />
-            <span className="text-xs text-gray-500">{connected ? 'Connected' : 'Disconnected'}</span>
+            <span className={`h-2 w-2 rounded-full ${ready ? 'bg-green-400' : connected ? 'bg-yellow-400 animate-pulse' : 'bg-red-400'}`} />
+            <span className="text-xs text-gray-500">{ready ? 'Ready' : connected ? 'Initializing…' : 'Disconnected'}</span>
           </div>
         </header>
 
@@ -104,7 +104,7 @@ export default function ChatWindow({ tenant, onTenantUpdate }: Props) {
           <div ref={bottomRef} />
         </div>
 
-        <InputBar onSend={sendMessage} disabled={!connected || streaming} />
+        <InputBar onSend={sendMessage} disabled={!ready || streaming} />
       </div>
     </div>
   )

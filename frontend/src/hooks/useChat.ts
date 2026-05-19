@@ -8,6 +8,7 @@ export function useChat(sessionId: string, tenantId: string) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [activeTools, setActiveTools] = useState<string[]>([])
   const [connected, setConnected] = useState(false)
+  const [ready, setReady] = useState(false)
   const [streaming, setStreaming] = useState(false)
   const wsRef = useRef<WebSocket | null>(null)
   const pendingAssistantId = useRef<string | null>(null)
@@ -18,7 +19,7 @@ export function useChat(sessionId: string, tenantId: string) {
     wsRef.current = ws
 
     ws.onopen = () => setConnected(true)
-    ws.onclose = () => setConnected(false)
+    ws.onclose = () => { setConnected(false); setReady(false) }
 
     ws.onmessage = (e) => {
       const event = JSON.parse(e.data as string) as ServerEvent
@@ -39,6 +40,8 @@ export function useChat(sessionId: string, tenantId: string) {
         setStreaming(false)
         setActiveTools([])
         pendingAssistantId.current = null
+      } else if (event.type === 'ready') {
+        setReady(true)
       } else if (event.type === 'error') {
         setStreaming(false)
         setActiveTools([])
@@ -77,5 +80,5 @@ export function useChat(sessionId: string, tenantId: string) {
     wsRef.current.send(JSON.stringify({ type: 'chat', sessionId, content }))
   }, [sessionId])
 
-  return { messages, activeTools, connected, streaming, sendMessage }
+  return { messages, activeTools, connected, ready, streaming, sendMessage }
 }
