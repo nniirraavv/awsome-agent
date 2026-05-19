@@ -27,7 +27,7 @@ export async function saveMessages(
 
   await Promise.all(
     messages.map((msg, i) => {
-      const timestamp = `${new Date().toISOString()}#${i}`;
+      const timestamp = String(i).padStart(10, '0');
       return dynamo.send(
         new PutCommand({
           TableName: TABLE,
