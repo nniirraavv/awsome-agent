@@ -123,7 +123,10 @@ export async function handleChatWebSocket(
     }
   }, 5 * 60 * 1000);
 
+  console.log(`[chat] session ready for tenant=${tenantId}`);
+
   ws.on('message', async (raw) => {
+    console.log('[chat] message received');
     let msg: ClientMessage;
     try {
       msg = JSON.parse(raw.toString()) as ClientMessage;
