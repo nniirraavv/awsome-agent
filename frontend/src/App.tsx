@@ -11,7 +11,7 @@ const API = import.meta.env.VITE_API_HTTP_URL ?? ''
 type View =
   | { kind: 'loading' }
   | { kind: 'auth' }
-  | { kind: 'onboarding'; canCancel: boolean }
+  | { kind: 'onboarding'; canCancel: boolean; resumeTenantId?: string; resumeCloudFormationUrl?: string }
   | { kind: 'dashboard'; tenants: Tenant[] }
   | { kind: 'chat'; tenant: Tenant; tenants: Tenant[] }
 
@@ -82,6 +82,19 @@ export default function App() {
     setView({ kind: 'onboarding', canCancel: true })
   }
 
+  async function handleResumeSetup(tenant: Tenant) {
+    const token = getAccessToken()
+    try {
+      const res = await fetch(`${API}/onboarding/resume/${tenant.tenantId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const data = await res.json() as { tenantId: string; cloudFormationUrl: string }
+      setView({ kind: 'onboarding', canCancel: true, resumeTenantId: data.tenantId, resumeCloudFormationUrl: data.cloudFormationUrl })
+    } catch {
+      setView({ kind: 'onboarding', canCancel: true, resumeTenantId: tenant.tenantId })
+    }
+  }
+
   function handleTenantUpdate(t: Tenant) {
     if (view.kind === 'chat') {
       setView({ ...view, tenant: t })
@@ -118,7 +131,8 @@ export default function App() {
   if (view.kind === 'onboarding') {
     return (
       <OnboardingWizard
-        initialTenantId={undefined}
+        initialTenantId={view.resumeTenantId}
+        initialCloudFormationUrl={view.resumeCloudFormationUrl}
         onComplete={handleOnboardingComplete}
         onCancel={view.canCancel ? handleBackToDashboard : undefined}
       />
@@ -131,6 +145,7 @@ export default function App() {
         tenants={view.tenants}
         onOpenChat={handleOpenChat}
         onAddAccount={handleAddAccount}
+        onResumeSetup={handleResumeSetup}
         onSignOut={handleSignOut}
       />
     )

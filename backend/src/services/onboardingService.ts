@@ -81,6 +81,17 @@ async function uploadTemplate(key: string, body: string, bucket: string): Promis
   );
 }
 
+export async function getResumeData(tenantId: string): Promise<{
+  tenantId: string;
+  externalId: string;
+  cloudFormationUrl: string;
+}> {
+  const tenant = await getTenant(tenantId);
+  const templateKey = `templates/${tenantId}/chatbot-role.yaml`;
+  const cloudFormationUrl = buildLaunchStackUrl(tenantId, tenant.externalId, templateKey);
+  return { tenantId, externalId: tenant.externalId, cloudFormationUrl };
+}
+
 export async function verifyAndActivateTenant(
   tenantId: string,
   roleArn: string

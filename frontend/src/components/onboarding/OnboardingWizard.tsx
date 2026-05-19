@@ -7,14 +7,16 @@ import { signOut } from '../../lib/cognito.ts'
 
 interface Props {
   initialTenantId?: string
+  initialCloudFormationUrl?: string
   onComplete: (tenant: Tenant) => void
   onCancel?: () => void
 }
 
-export default function OnboardingWizard({ initialTenantId, onComplete, onCancel }: Props) {
+export default function OnboardingWizard({ initialTenantId, initialCloudFormationUrl, onComplete, onCancel }: Props) {
   const [state, setState] = useState<OnboardingState>({
     step: initialTenantId ? 2 : 1,
     tenantId: initialTenantId,
+    cloudFormationUrl: initialCloudFormationUrl,
   })
 
   return (

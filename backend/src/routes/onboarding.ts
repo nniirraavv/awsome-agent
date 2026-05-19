@@ -4,6 +4,7 @@ import {
   registerTenant,
   generateCloudFormationTemplate,
   verifyAndActivateTenant,
+  getResumeData,
 } from '../services/onboardingService.js';
 import { getTenant, assumeTenantRole } from '../services/tenantService.js';
 import { runServiceDiscovery } from '../services/discoveryService.js';
@@ -44,6 +45,15 @@ router.get('/template/:tenantId', async (req, res) => {
     const template = generateCloudFormationTemplate(tenant.externalId);
     res.setHeader('Content-Type', 'text/yaml');
     res.send(template);
+  } catch (err) {
+    res.status(404).json({ error: String(err) });
+  }
+});
+
+router.get('/resume/:tenantId', requireAuth, async (req, res) => {
+  try {
+    const data = await getResumeData(req.params['tenantId']!);
+    res.json(data);
   } catch (err) {
     res.status(404).json({ error: String(err) });
   }

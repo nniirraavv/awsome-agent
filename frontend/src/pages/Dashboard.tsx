@@ -5,6 +5,7 @@ interface Props {
   tenants: Tenant[]
   onOpenChat: (tenant: Tenant) => void
   onAddAccount: () => void
+  onResumeSetup: (tenant: Tenant) => void
   onSignOut: () => void
 }
 
@@ -20,7 +21,7 @@ const statusLabels: Record<string, string> = {
   suspended: 'Suspended',
 }
 
-export default function Dashboard({ tenants, onOpenChat, onAddAccount, onSignOut }: Props) {
+export default function Dashboard({ tenants, onOpenChat, onAddAccount, onResumeSetup, onSignOut }: Props) {
   function handleSignOut() {
     signOut()
     onSignOut()
@@ -124,13 +125,21 @@ export default function Dashboard({ tenants, onOpenChat, onAddAccount, onSignOut
                   </div>
                 )}
 
-                <button
-                  onClick={() => onOpenChat(tenant)}
-                  disabled={tenant.status !== 'active'}
-                  className="w-full rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  Open Chat
-                </button>
+                {tenant.status === 'active' ? (
+                  <button
+                    onClick={() => onOpenChat(tenant)}
+                    className="w-full rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600"
+                  >
+                    Open Chat
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => onResumeSetup(tenant)}
+                    className="w-full rounded-lg border border-orange-500 px-4 py-2 text-sm font-semibold text-orange-400 transition hover:bg-orange-500/10"
+                  >
+                    Continue Setup
+                  </button>
+                )}
               </div>
             ))}
           </div>
