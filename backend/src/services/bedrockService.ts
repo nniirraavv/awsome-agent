@@ -9,12 +9,15 @@ import type { MCPSession } from './mcpManager.js';
 import { callMCPTool } from './mcpManager.js';
 import type { Tenant, ServerEvent } from '../types/index.js';
 
-const MODEL_ID =
-  process.env.BEDROCK_MODEL_ID ?? 'us.anthropic.claude-haiku-4-5-20251001-v1:0';
-const REGION = process.env.AWS_REGION ?? 'us-east-1';
 const MAX_HISTORY_TURNS = 20;
 
-const bedrock = new BedrockRuntimeClient({ region: REGION });
+let bedrockClient: BedrockRuntimeClient | null = null;
+function getBedrock() {
+  if (!bedrockClient) {
+    bedrockClient = new BedrockRuntimeClient({ region: process.env.AWS_REGION ?? 'us-east-1' });
+  }
+  return bedrockClient;
+}
 
 function buildSystemPrompt(tenant: Tenant): string {
   return `You are an expert AWS DevOps assistant helping engineers manage and troubleshoot their AWS infrastructure.
@@ -74,7 +77,7 @@ function send(ws: WebSocket, event: ServerEvent): void {
   }
 }
 
-const MAX_TOOLS = 64;
+const MAX_TOOLS = 20;
 
 export async function streamChat(
   ws: WebSocket,
@@ -88,6 +91,7 @@ export async function streamChat(
     { role: 'user', content: [{ text: userMessage }] },
   ];
 
+  const MODEL_ID = process.env.BEDROCK_MODEL_ID ?? 'us.amazon.nova-pro-v1:0';
   const allTools = bedrockToolsFromMCP(mcpSession.tools);
   // Bedrock rejects or hangs on requests with too many tools — cap at MAX_TOOLS
   const tools = allTools.slice(0, MAX_TOOLS);
@@ -98,7 +102,7 @@ export async function streamChat(
 
   while (continueLoop) {
     console.log('[bedrock] sending ConverseStreamCommand...');
-    const stream = await bedrock.send(
+    const stream = await getBedrock().send(
       new ConverseStreamCommand({
         modelId: MODEL_ID,
         system: [{ text: systemPrompt }],

@@ -1,8 +1,8 @@
 import dotenv from 'dotenv';
 import { resolve } from 'path';
 // Load .env from backend dir first, then fall back to project root
-dotenv.config({ path: resolve(process.cwd(), '.env') });
-dotenv.config({ path: resolve(process.cwd(), '../.env') });
+dotenv.config({ path: resolve(process.cwd(), '.env'), override: true });
+dotenv.config({ path: resolve(process.cwd(), '../.env'), override: true });
 import express from 'express';
 import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
