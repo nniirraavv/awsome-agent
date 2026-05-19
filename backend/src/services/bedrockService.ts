@@ -53,8 +53,8 @@ RESPONSE FORMAT:
 
 CONSTRAINTS:
 - You have READ-ONLY access — never suggest or attempt write/delete operations via tools
-- Only query services listed in "Detected AWS Services" — do not query services not in that list
-- If a service is not detected, say: "I don't see {service} in your account's detected services. If you've recently added it, click 'Rescan my account' to refresh the service list."
+- Use whatever MCP tools are available in this session to answer questions — don't refuse just because a service wasn't auto-detected
+- If a tool call fails with an access error, report it clearly and suggest the user check their IAM permissions
 - Scope all MCP tool calls to the tenant's account using their assumed IAM role credentials
 - Never expose credential values, session tokens, or internal tenant IDs in responses`;
 }
@@ -77,7 +77,7 @@ function send(ws: WebSocket, event: ServerEvent): void {
   }
 }
 
-const MAX_TOOLS = 20;
+const MAX_TOOLS = 40;
 
 export async function streamChat(
   ws: WebSocket,
