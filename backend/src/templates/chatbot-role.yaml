@@ -4,6 +4,9 @@ Parameters:
   ExternalId:
     Type: String
     Description: Unique security token provided by the chatbot (do not change)
+  TenantId:
+    Type: String
+    Description: Tenant identifier used for role naming (do not change)
   ChatbotAccountId:
     Type: String
     Description: AWS Account ID of the chatbot service (do not change)
@@ -11,13 +14,13 @@ Resources:
   ChatbotReadOnlyRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub 'ChatbotReadOnly-${ExternalId}'
+      RoleName: !Sub 'ChatbotReadOnly-${TenantId}'
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
           - Effect: Allow
             Principal:
-              AWS: !Sub 'arn:aws:iam::${ChatbotAccountId}:root'
+              AWS: !Sub 'arn:aws:iam::${ChatbotAccountId}:role/ChatbotEC2Role'
             Action: sts:AssumeRole
             Condition:
               StringEquals:

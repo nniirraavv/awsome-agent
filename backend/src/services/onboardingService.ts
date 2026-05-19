@@ -20,7 +20,7 @@ export async function registerTenant(data: {
   userId?: string;
 }): Promise<{ tenantId: string; externalId: string; cloudFormationUrl: string }> {
   const tenantId = uuidv4();
-  const externalId = `tenant-${tenantId.slice(0, 8)}-${Math.random().toString(36).slice(2, 6)}`;
+  const externalId = uuidv4(); // full UUID — high entropy, never exposed in role name
 
   await createTenant({
     tenantId,
@@ -39,7 +39,7 @@ export async function registerTenant(data: {
     await uploadTemplate(templateKey, template, cfnBucket);
   }
 
-  const cloudFormationUrl = buildLaunchStackUrl(externalId, templateKey);
+  const cloudFormationUrl = buildLaunchStackUrl(tenantId, externalId, templateKey);
 
   return { tenantId, externalId, cloudFormationUrl };
 }
@@ -51,7 +51,7 @@ export function generateCloudFormationTemplate(externalId: string): string {
   return template;
 }
 
-function buildLaunchStackUrl(externalId: string, templateKey: string): string {
+function buildLaunchStackUrl(tenantId: string, externalId: string, templateKey: string): string {
   const cfnTemplateS3Url = process.env.CFN_TEMPLATE_S3_URL ?? '';
   const cfnBucket = process.env.CFN_TEMPLATE_BUCKET ?? '';
   const chatbotAccountId = process.env.AWS_ACCOUNT_ID ?? '';
@@ -62,8 +62,9 @@ function buildLaunchStackUrl(externalId: string, templateKey: string): string {
   const params = new URLSearchParams({
     templateURL: templateUrl,
     param_ExternalId: externalId,
+    param_TenantId: tenantId,
     param_ChatbotAccountId: chatbotAccountId,
-    stackName: 'ChatbotReadOnlyAccess',
+    stackName: `ChatbotReadOnlyAccess-${tenantId.slice(0, 8)}`,
   });
   return `https://console.aws.amazon.com/cloudformation/home#/stacks/create/review?${params.toString()}`;
 }
